@@ -2,6 +2,8 @@ package com.aman.permissionsimagerecycler
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -22,50 +24,56 @@ class MainActivity : AppCompatActivity() {
         ActivityMainBinding.inflate(layoutInflater)
     }
 
-    private val gridLayoutManager: GridLayoutManager by lazy{
+    private val gridLayoutManager: GridLayoutManager by lazy {
         GridLayoutManager(this, 4)
     }
-    var images = arrayListOf<String>("1","2")
+    var images = arrayListOf<Uri>()
 
-    private val imagesAdapter = ImagesAdapter(images ,::onDeleteClick, ::onAddClick)
+    private val imagesAdapter = ImagesAdapter(images, ::onDeleteClick, ::onAddClick)
 
-    private  val TAG = "MainActivity"
+    private val TAG = "MainActivity"
 
-    val readStoragePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        android.Manifest.permission.READ_MEDIA_IMAGES
-    } else {
-        android.Manifest.permission.READ_EXTERNAL_STORAGE
-    }
-
-    val writeStoragePermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        android.Manifest.permission.READ_MEDIA_IMAGES
-    } else {
-        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-    }
+    private val storagePermissions: Array<String> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES)
+        } else {
+            arrayOf(
+                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+        }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
-        if (
-            permissions[readStoragePermission] == true &&
-            permissions[writeStoragePermission] == true
-        ) {
+        if (permissions.values.all { it }) {
             Toast.makeText(this, "All permissions granted", Toast.LENGTH_SHORT).show()
+            pickImage.launch("image/*")
         } else {
             Toast.makeText(this, "Permissions denied", Toast.LENGTH_SHORT).show()
             openAppSettings()
         }
     }
 
-    private fun onDeleteClick(position: Int){
+    private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) {
+        it?.let {
+            images.add(it)
+            imagesAdapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun onDeleteClick(position: Int) {
         images.removeAt(position)
         imagesAdapter.notifyDataSetChanged()
     }
-    private fun onAddClick(){
-        images.add(" ")
-        imagesAdapter.notifyDataSetChanged()
 
+    private fun onAddClick() {
+        if (!hasPermissions()) {
+            requestPermissionsWithRationale()
+        } else
+            imagesAdapter.notifyDataSetChanged()
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -77,34 +85,28 @@ class MainActivity : AppCompatActivity() {
         }
 
         initViews()
-        if(hasPermissions() == false){
+
+        if (!hasPermissions()) {
             requestPermissionsWithRationale()
         }
     }
 
-    private fun initViews(){
+    private fun initViews() {
         binding.rvImages.layoutManager = gridLayoutManager
         binding.rvImages.adapter = imagesAdapter
     }
 
     private fun hasPermissions(): Boolean {
-        val readStoragePermission = ContextCompat.checkSelfPermission(
-            this, readStoragePermission
-        )
-        val writeStoragePermission = ContextCompat.checkSelfPermission(
-            this, writeStoragePermission
-        )
-        return  readStoragePermission == PackageManager.PERMISSION_GRANTED &&
-                writeStoragePermission == PackageManager.PERMISSION_GRANTED
+        return storagePermissions.all { permission ->
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
+        }
     }
 
-    // Request permissions with rationale handling
     private fun requestPermissionsWithRationale() {
-        val shouldShowRationale = ActivityCompat.shouldShowRequestPermissionRationale(
-            this, readStoragePermission
-        ) || ActivityCompat.shouldShowRequestPermissionRationale(
-            this, writeStoragePermission
-        )
+        val shouldShowRationale = storagePermissions.any { permission ->
+            ActivityCompat.shouldShowRequestPermissionRationale(this, permission)
+        }
+
         if (shouldShowRationale) {
             Toast.makeText(
                 this,
@@ -119,10 +121,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestPermissions() {
         requestPermissionLauncher.launch(
-            arrayOf(
-                writeStoragePermission,
-                readStoragePermission
-            )
+            storagePermissions
         )
     }
 

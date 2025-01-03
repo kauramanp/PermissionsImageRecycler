@@ -1,5 +1,6 @@
 package com.aman.permissionsimagerecycler
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -7,7 +8,7 @@ import com.aman.permissionsimagerecycler.databinding.LayoutAddImageBinding
 import com.aman.permissionsimagerecycler.databinding.LayoutImageBinding
 
 class ImagesAdapter(
-    var list: ArrayList<String>,
+    var list: ArrayList<Uri>,
     private inline val onDeleteClick: (Int) -> Unit,
     private inline val onAddClick: () -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -27,7 +28,8 @@ class ImagesAdapter(
     }
 
     inner class ItemViewHolder(var view: LayoutImageBinding) : RecyclerView.ViewHolder(view.root) {
-        fun bind(item: String) {
+        fun bind(item: Uri) {
+            view.ivImage.setImageURI(item)
         }
     }
 
