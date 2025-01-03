@@ -28,8 +28,11 @@ class ImagesAdapter(
     }
 
     inner class ItemViewHolder(var view: LayoutImageBinding) : RecyclerView.ViewHolder(view.root) {
-        fun bind(item: Uri) {
+        fun bind(item: Uri, position: Int) {
             view.ivImage.setImageURI(item)
+            view.ivRemove.setOnClickListener {
+                onDeleteClick.invoke(position)
+            }
         }
     }
 
@@ -65,7 +68,7 @@ class ImagesAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is ItemViewHolder) {
             val item = list[position]
-            holder.bind(item)
+            holder.bind(item, position)
         } else if (holder is FooterViewHolder) {
             holder.bind()
         }

@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         if (!hasPermissions()) {
             requestPermissionsWithRationale()
         } else
-            imagesAdapter.notifyDataSetChanged()
+            pickImage.launch("image/*")
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
